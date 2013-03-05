@@ -3,14 +3,14 @@ from django.contrib.sessions.models import Session
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY, BACKEND_SESSION_KEY, load_backend
 from django.contrib.auth.models import AnonymousUser
+from django.utils.timezone import now
+
 
 from visitor import managers
 
-from datetime import datetime
-
 class Visitor(models.Model):
     visitor_key = models.CharField(max_length='50', db_index=True)
-    created = models.DateTimeField(default=datetime.now())
+    created = models.DateTimeField(default=now())
     last_update = models.DateTimeField()
     num_visits = models.SmallIntegerField(default=0)
     last_session_key = models.CharField(max_length=40)
@@ -30,7 +30,7 @@ class Visitor(models.Model):
         self.num_visits += 1
 
     def save(self, *args, **kws):
-        self.last_update = datetime.now()
+        self.last_update = now()
         # @@@ Look into this rather than just ignoring it.
         try:
             super(Visitor, self).save(*args, **kws)
