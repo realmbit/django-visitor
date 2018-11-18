@@ -8,16 +8,18 @@ from visitor.models import Visitor
 from visitor import visitor_constants as constants
 
 # this is a counter to make sure our uuid's are unique.
-counter = itertools.count(0).next
+counter = itertools.count(0)
 
 # pull settings from settings file, if not there, use reasonable defaults
-COOKIE_DOMAIN = getattr(settings, 'COOKIE_DOMAIN', None) # local domain only 
+COOKIE_DOMAIN = getattr(settings, 'COOKIE_DOMAIN', None) # local domain only
 COOKIE_MAX_AGE = getattr(settings, 'COOKIE_MAX_AGE', 31536000) # 1 year
 VISITOR_IGNORE_IP_LIST = getattr(settings, 'VISITOR_IGNORE_IP_LIST', ('127.0.0.1',))
 
+#TODO_MIGRATION
 def create_uuid(*parts):
-    name = '-'.join([str(counter())] + [str(time.time())] + [str(p) for p in parts])
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, name))
+    # name = '-'.join([str(counter())] + [str(time.time())] + [str(p) for p in parts])
+    # return str(uuid.uuid5(uuid.NAMESPACE_URL, name))
+    return uuid.uuid4().hex
 
 def ip_address_from_request(request):
     meta = request.META
@@ -91,7 +93,7 @@ def set_visitor_cookie(response, visitor):
     """ set the visitor cookie using the visitor object """
     if response and visitor and visitor.visitor_key:
         response.set_cookie(
-            constants.COOKIE_VISITOR_KEY, 
+            constants.COOKIE_VISITOR_KEY,
             visitor.visitor_key,
             max_age=COOKIE_MAX_AGE,
             domain=COOKIE_DOMAIN
@@ -101,7 +103,7 @@ def set_visitor_cookie_from_key(response, visitor_key):
     """ set the cookie using the visitor_key"""
     if response and visitor_key:
         response.set_cookie(
-            constants.COOKIE_VISITOR_KEY, 
+            constants.COOKIE_VISITOR_KEY,
             visitor_key,
             max_age=COOKIE_MAX_AGE,
             domain=COOKIE_DOMAIN
@@ -114,5 +116,3 @@ def delete_visitor_cookie(response):
             constants.COOKIE_VISITOR_KEY,
             domain=COOKIE_DOMAIN
         )
-
-
