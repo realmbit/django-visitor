@@ -1,6 +1,7 @@
 import itertools
 import time
 import uuid
+from hashlib import sha256
 
 from django.conf import settings
 
@@ -17,9 +18,9 @@ VISITOR_IGNORE_IP_LIST = getattr(settings, 'VISITOR_IGNORE_IP_LIST', ('127.0.0.1
 
 #TODO_MIGRATION
 def create_uuid(*parts):
-    # name = '-'.join([str(counter())] + [str(time.time())] + [str(p) for p in parts])
+    name = '-'.join([str(time.time())] + [str(p) for p in parts])
     # return str(uuid.uuid5(uuid.NAMESPACE_URL, name))
-    return uuid.uuid4().hex
+    return sha256(name).hexdigest()
 
 def ip_address_from_request(request):
     meta = request.META
@@ -48,20 +49,31 @@ def ip_address_from_request(request):
 
     return ip_address
 
-def create_visitor(ip_address,session_key):
+def create_visitor(visitor_key, session_key):
     """ Create the visitor given an ip_address """
+
+    visitor = Visitor.objects.filter(
+        visitor_key=visitor_key
+    ).last()
+
+    if visitor:
+        visitor.mark_visit()
+        visitor.save()
+        return visitor
+
     visitor = Visitor()
-    visitor.generate_key(ip_address)
+    visitor.visitor_key = visitor_key
     visitor.mark_visit()
     visitor.last_session_key = session_key
     visitor.save()
+
     return visitor
 
 def get_visitor(visitor_key):
     """ Get the visitor object from the database. """
     return Visitor.objects.find_visitor(visitor_key)
 
-def update_visitor(visitor_key,session_key=None):
+def update_visitor(visitor_key, session_key=None):
     """ update the visitor using the visitor key """
     visitor = get_visitor(visitor_key)
     if visitor:

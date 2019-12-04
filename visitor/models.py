@@ -21,21 +21,10 @@ class Visitor(models.Model):
         return '#%d/%s' % (self.id, self.last_session_key)
 
     def generate_key(self, ip_address):
-        if not self.visitor_key:
-            from visitor.visitor_utils import create_uuid
-            self.visitor_key = create_uuid(ip_address)
-        return self.visitor_key
+        self.visitor_key = session_key
 
     def mark_visit(self):
         self.num_visits += 1
-
-    def save(self, *args, **kws):
-        self.last_update = now()
-        # @@@ Look into this rather than just ignoring it.
-        try:
-            super(Visitor, self).save(*args, **kws)
-        except IntegrityError:
-            pass
 
     @property
     def session(self):

@@ -4,6 +4,9 @@ if not, it will create a cookie, and create a visitor record for future tracking
 If we already know about them we get their visitor record and update it.
 """
 from django import http
+from django.utils.deprecation import MiddlewareMixin
+from uuid import uuid4
+
 import logging
 
 import visitor.visitor_utils as utils
@@ -13,21 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 
-class VisitorMiddleware(object):
+class VisitorMiddleware(MiddlewareMixin):
     """
     Visitors middleware it will look to see if we already registered this
     visitor if not, it will create a cookie, and create a visitor record for
     future tracking. If we already know about them we get their visitor record
     and update it.
     """
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        response = self.get_response(request)
-
-        return response
-        
     def process_request(self, request):
         """ get or set the visitor cookie """
         # figure out the IP
@@ -40,7 +35,7 @@ class VisitorMiddleware(object):
         # set the cookie in the browser.
 
         cookie_saved = request.session.get(constants.COOKIE_SAVED, None)
-        visitor_key = request.session.get(constants.VISITOR_KEY, None)
+        visitor_key = request.session.get(constants.VISITOR_KEY, str(uuid4()))
         visitor_key_cookie = utils.get_visitor_cookie_key(request)
 
         # print("cookie saved = %s" % cookie_saved)
@@ -55,13 +50,15 @@ class VisitorMiddleware(object):
         # if we wanted to update the visitor every time they made a request
         # we wouldn't do this, but that would take a lot of resources for
         # large sites, so we will defer that to a future version for now.
-        if (visitor_key and
-            cookie_saved and
-            visitor_key_cookie and
-            visitor_key == visitor_key_cookie):
-                return None
+        # if (visitor_key and
+        #     cookie_saved and
+        #     visitor_key_cookie and
+        #     visitor_key == visitor_key_cookie
+        #     ):
+        #         return None
 
         session_key = request.session.session_key
+
         if not session_key:
             request.session.save()
             session_key = request.session.session_key
@@ -70,17 +67,19 @@ class VisitorMiddleware(object):
 
         if visitor_key_cookie:
             request.session[constants.COOKIE_SAVED] = True
-            visitor = utils.update_visitor(visitor_key_cookie,
-                                     session_key=session_key)
+            visitor = utils.update_visitor(
+                visitor_key_cookie,
+                session_key=session_key
+            )
 
             if not visitor:
                 # we couldn't find their old cookie, so create a new one.
                 request.session[constants.COOKIE_SAVED] = False
-                visitor = utils.create_visitor(ip_address, session_key)
+                visitor = utils.create_visitor(visitor_key, session_key)
 
         else:
             request.session[constants.COOKIE_SAVED] = False
-            visitor = utils.create_visitor(ip_address, session_key)
+            visitor = utils.create_visitor(visitor_key, session_key)
 
         request.session[constants.VISITOR_KEY] = visitor.visitor_key
         return None
