@@ -12,7 +12,7 @@ class Visitor(models.Model):
     visitor_key = models.CharField(max_length=50, db_index=True)
     created = models.DateTimeField(auto_now_add=True)
     last_update = models.DateTimeField(auto_now=True)
-    num_visits = models.SmallIntegerField(default=0)
+    num_visits = models.PositiveIntegerField(default=0)
     last_session_key = models.CharField(max_length=40, db_index=True)
 
     objects = managers.VisitorManager()
